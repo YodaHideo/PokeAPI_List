@@ -4,8 +4,16 @@ from prettytable import PrettyTable
 
 app = Flask(__name__)
 
-def get_pokemon_list():
-    url = "https://pokeapi.co/api/v2/pokemon?limit=10000"
+def get_pokemon_count():
+    url = "https://pokeapi.co/api/v2/pokemon/"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        return data['count']
+    return 0
+
+def get_pokemon_list(limit=20):
+    url = f"https://pokeapi.co/api/v2/pokemon?limit={limit}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
@@ -39,8 +47,9 @@ def index():
         if pokemon_name:
             return redirect(url_for("pokemon_info", name=pokemon_name))
 
-    pokemon_list = get_pokemon_list()
-    return render_template("index.html", pokemon_list=pokemon_list)
+    pokemon_count = get_pokemon_count()
+    pokemon_list = get_pokemon_list(limit=pokemon_count)
+    return render_template("index.html", pokemon_count=pokemon_count, pokemon_list=pokemon_list)
 
 @app.route("/pokemon/<name>")
 def pokemon_info(name):
