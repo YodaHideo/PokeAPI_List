@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokemon List</title>
+</head>
+<body>
+<h1>Pokemon List</h1>
+<form method="POST">
+    <label for="pokemon_name">Введите имя покемона:</label>
+    <input type="text" id="pokemon_name" name="pokemon_name">
+    <button type="submit">Поиск</button>
+</form>
+<h2>Список покемонов:</h2>
+<ul>
+    {% for pokemon_name in pokemon_list %}
+    <li><a href="{{ url_for('pokemon_info', name=pokemon_name) }}">{{ pokemon_name.capitalize() }}</a></li>
+    {% endfor %}
+</ul>
+</body>
+</html>

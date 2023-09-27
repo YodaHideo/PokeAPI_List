@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokemon Info</title>
+</head>
+<body>
+<h1>Pokemon Info</h1>
+<a href="{{ url_for('index') }}">Назад к списку покемонов</a>
+<br><br>
+{% if result %}
+<h2>Информация о покемоне:</h2>
+<div>
+    {{ result|safe }}
+</div>
+{% else %}
+<p>Покемон не найден.</p>
+{% endif %}
+</body>
+</html>
