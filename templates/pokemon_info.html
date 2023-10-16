@@ -4,18 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokemon Info</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            background-color: #f44336;
+            color: white;
+            padding: 20px 0;
+            margin: 0;
+        }
+
+        a {
+            text-decoration: none;
+            color: #333;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        img {
+            max-width: 200px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: center;
+        }
+
+        li {
+            margin: 10px 0;
+        }
+
+        .button-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .fight-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+        }
+
+        .fight-button:hover {
+            background-color: #ff665c;
+        }
+    </style>
 </head>
 <body>
 <h1>Pokemon Info</h1>
-<a href="{{ url_for('index') }}">Назад к списку покемонов</a>
+<a href="{{ url_for('index') }}">Back to Pokemon List</a>
 <br><br>
-{% if result %}
-<h2>Информация о покемоне:</h2>
-<div>
-    {{ result|safe }}
+{% if pokemon %}
+<h2>Name: {{ pokemon['name'] }}</h2>
+<img src="{{ pokemon['image'] }}" alt="{{ pokemon['name'] }}">
+<h3>Characteristics:</h3>
+<ul>
+    <li>Type: {{ pokemon['type'] }}</li>
+    <li>Height: {{ pokemon['height'] }} decimetres</li>
+    <li>Weight: {{ pokemon['weight'] }} hectograms</li>
+    <li>Abilities: {{ pokemon['abilities'] }}</li>
+    <li>HP: {{ pokemon['hp'] }}</li>
+    <li>Attack Power: {{ pokemon['attack_power'] }}</li>
+</ul>
+<div class="button-container">
+    <a href="{{ url_for('fight', name1=pokemon['name'], name2=opponent['name']) }}" class="fight-button">Fight!</a>
 </div>
 {% else %}
-<p>Покемон не найден.</p>
+<p>Pokemon not found.</p>
 {% endif %}
 </body>
 </html>

@@ -4,19 +4,146 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokemon List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        h1 {
+            text-align: center;
+            background-color: #f44336;
+            color: white;
+            padding: 20px 0;
+            margin: 0;
+        }
+
+        form {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 200px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button[type="submit"] {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        li {
+            margin: 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        a {
+            text-decoration: none;
+            color: #333;
+        }
+
+        img {
+            max-width: 100px;
+            height: auto;
+        }
+
+        .pokemon-name {
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .pokemon-details {
+            margin-top: 10px;
+        }
+
+        .pagination {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .pagination a {
+            text-decoration: none;
+            background-color: #f44336;
+            color: white;
+            padding: 5px 10px;
+            margin: 5px;
+            border-radius: 5px;
+        }
+
+        .pagination a:hover {
+            background-color: #ff665c;
+        }
+    </style>
 </head>
 <body>
 <h1>Pokemon List</h1>
 <form method="POST">
-    <label for="pokemon_name">Введите имя покемона:</label>
+    <label for="pokemon_name">Enter Pokemon Name:</label>
     <input type="text" id="pokemon_name" name="pokemon_name">
-    <button type="submit">Поиск</button>
+    <button type="submit">Search</button>
 </form>
-<h2>Список покемонов:</h2>
+<h2>List of Pokemon:</h2>
 <ul>
-    {% for pokemon_name in pokemon_list %}
-    <li><a href="{{ url_for('pokemon_info', name=pokemon_name) }}">{{ pokemon_name.capitalize() }}</a></li>
+    {% for pokemon in pokemon_list %}
+    <li>
+        <a href="{{ url_for('pokemon_info', name=pokemon['name']) }}">
+            <img src="{{ pokemon['image'] }}" alt="{{ pokemon['name'] }}">
+            <span class="pokemon-name">{{ pokemon['name'].capitalize() }}</span>
+            <p>HP: {{ pokemon['hp'] }}</p>
+            <p>Attack Power: {{ pokemon['attack_power'] }}</p>
+        </a>
+    </li>
     {% endfor %}
 </ul>
+<div class="pagination">
+    {% if total_pages > 1 %}
+    <span>Page:</span>
+    {% if offset > 0 %}
+    <a href="{{ url_for('index', offset=prev_offset) }}">Previous</a>
+    {% endif %}
+
+    {% for page_num in page_range %}
+    {% if page_num == current_page %}
+    <strong>{{ page_num }}</strong>
+    {% else %}
+    <a href="{{ url_for('index', offset=(page_num - 1) * limit) }}">{{ page_num }}</a>
+    {% endif %}
+    {% endfor %}
+
+    {% if offset < total_pokemon - limit %}
+    <a href="{{ url_for('index', offset=next_offset) }}">Next</a>
+    {% endif %}
+    {% endif %}
+</div>
 </body>
 </html>

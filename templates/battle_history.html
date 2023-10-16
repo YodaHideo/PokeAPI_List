@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Battle History</title>
+</head>
+<body>
+<h1>Battle History</h1>
+<ul>
+    {% for battle in battles %}
+    <li><a href="{{ url_for('fight', name1=battle['pokemon1']['name'], name2=battle['pokemon2']['name']) }}">
+        {{ battle['pokemon1']['name'] }} vs {{ battle['pokemon2']['name'] }}
+    </a></li>
+    {% endfor %}
+</ul>
+</body>
+</html>

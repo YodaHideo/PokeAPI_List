@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokemon Fight</title>
+</head>
+<body>
+<h1>Battle Page</h1>
+<h2>{{ pokemon1['name'] }} vs {{ pokemon2['name'] }}</h2>
+
+{% if battle_result %}
+<p>{{ battle_result }}</p>
+{% endif %}
+
+<div>
+    <img src="{{ pokemon1['image'] }}" alt="{{ pokemon1['name'] }}">
+    <p>HP: <span id="pokemon1_hp">{{ pokemon1['hp'] }}</span></p>
+    <p>Урон: {{ pokemon1['attack_power'] }}</p>
+</div>
+<div>
+    <img src="{{ pokemon2['image'] }}" alt="{{ pokemon2['name'] }}">
+    <p>HP: <span id="pokemon2_hp">{{ pokemon2['hp'] }}</span></p>
+    <p>Урон: {{ pokemon2['attack_power'] }}</p>
+</div>
+<!-- ... -->
+<form method="POST" action="{{ url_for('fight', name1=pokemon1['name'], name2=pokemon2['name']) }}">
+    <label for="user_damage">Enter Damage:</label>
+    <input type="text" id="user_damage" name="user_damage">
+    <input type="hidden" id="pokemon1_hp1" name="pokemon1_hp" value="{{ pokemon1['hp'] }}">
+    <input type="hidden" id="pokemon2_hp2" name="pokemon2_hp" value="{{ pokemon2['hp'] }}">
+    {% if not battle_result or 'Победитель' not in battle_history|last %}
+    <button type="submit">Attack</button>
+    {% else %}
+    <p>Бой завершен</p>
+    {% endif %}
+</form>
+
+<h3>Battle History</h3>
+<ul>
+    {% for round in battle_history %}
+    <li>{{ round }}</li>
+    {% endfor %}
+</ul>
+</body>
+</html>
