@@ -13,6 +13,12 @@
         {{ battle['pokemon1']['name'] }} vs {{ battle['pokemon2']['name'] }}
     </a></li>
     {% endfor %}
+    <h2>Battle History</h2>
+
+</ul>
+    {% for round in battle_history %}
+    <li>{{ round }}</li>
+    {% endfor %}
 </ul>
 </body>
 </html>

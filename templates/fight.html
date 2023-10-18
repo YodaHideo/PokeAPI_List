@@ -31,16 +31,29 @@
     <input type="hidden" id="pokemon2_hp2" name="pokemon2_hp" value="{{ pokemon2['hp'] }}">
     {% if not battle_result or 'Победитель' not in battle_history|last %}
     <button type="submit">Attack</button>
+    <button type="button" onclick="autoBattle()">Auto Battle</button>
     {% else %}
     <p>Бой завершен</p>
     {% endif %}
 </form>
+<script>
+    function autoBattle() {
+        // Генерируем случайные удары и обновляем форму
+        var user_damage = Math.floor(Math.random() * 10) + 1;
+        document.getElementById("user_damage").value = user_damage;
+        document.querySelector("form").submit();
+    }
+</script>
 
-<h3>Battle History</h3>
+<h2>Battle History</h2>
 <ul>
     {% for round in battle_history %}
     <li>{{ round }}</li>
     {% endfor %}
+</ul>
+    {% if battle_result %}
+    <h3>{{ battle_result }}</h3>
+    {% endif %}
 </ul>
 </body>
 </html>

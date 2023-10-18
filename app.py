@@ -1,47 +1,80 @@
 from flask import Flask, render_template, request, redirect, url_for
 import requests
 import random
-import os
-import json
+from flask_sqlalchemy import SQLAlchemy
+#пароль от почты яндекс: kuqiqkiiyplmnhey
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres@127.0.0.2:5433/poke'
+db = SQLAlchemy(app)
 
-# Создаем папку для хранения истории боя, если она не существует
-if not os.path.exists("battle_history"):
-    os.mkdir("battle_history")
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+
+def send_email_gmail(subject, text, attachment_path=None):
+    # Настройки почты
+    smtp_server = 'smtp.yandex.ru'
+    smtp_port = 465  # Порт вашего SMTP-сервера
+    smtp_username = 'Alex09918@yandex.ru'
+    smtp_password = 'kuqiqkiiyplmnhey'
+    sender_email = 'Alex09918@yandex.ru'
+    receiver_email = 'alex0991818628@mail.ru'  # Адрес получателя
+
+    msg = MIMEMultipart()
+    msg['From'] = sender_email
+    msg['To'] = receiver_email
+    msg['Subject'] = subject
+
+    # Добавление текстового сообщения
+    text_part = MIMEText(text, 'plain', 'utf-8')
+    msg.attach(text_part)
+
+    # Установка соединения с SMTP-сервером Gmail
+    server = smtplib.SMTP_SSL(smtp_server, smtp_port)
+    server.login(smtp_username, smtp_password)
+    server.sendmail(sender_email, receiver_email, msg.as_string())
+    server.quit()
+
+class BattleHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    pokemon1_name = db.Column(db.String(50), nullable=False)
+    pokemon2_name = db.Column(db.String(50), nullable=False)
+    round_data = db.Column(db.JSON, nullable=False)
+
+    def __init__(self, pokemon1_name, pokemon2_name, round_data):
+        self.pokemon1_name = pokemon1_name
+        self.pokemon2_name = pokemon2_name
+        self.round_data = round_data
+
 
 # Функция для добавления раунда в историю боя и сохранения ее в файл
 def add_round_to_battle_history(pokemon1_name, pokemon2_name, round_data):
-    filename = f"{pokemon1_name}_{pokemon2_name}_battle_history.json"
+    existing_record = BattleHistory.query.filter_by(pokemon1_name=pokemon1_name, pokemon2_name=pokemon2_name).first()
 
-    # Загрузим существующую историю, если она есть
-    battle_history = load_battle_history_from_json(pokemon1_name, pokemon2_name)
+    if existing_record:
+        # Если запись существует, обновляем ее
+        existing_record.round_data = [round_data]
+    else:
+        # Если записи нет, создаем новую
+        battle_record = BattleHistory(pokemon1_name=pokemon1_name, pokemon2_name=pokemon2_name, round_data=[round_data])
+        db.session.add(battle_record)
 
-    # Добавим новый раунд в историю
-    battle_history.append(round_data)
+    db.session.commit()
 
-    # Сохраним обновленную историю обратно в файл
-    save_battle_history_to_json(pokemon1_name, pokemon2_name, battle_history)
-
-def save_battle_history_to_json(pokemon1_name, pokemon2_name, battle_history):
-    filename = f"{pokemon1_name}_{pokemon2_name}_battle_history.json"
-    with open(filename, 'w') as file:
-        json.dump(battle_history, file)
 
 # Функция для сохранения истории боя в файл
-def save_battle_history(name1, name2, battle_history):
-    filename = f"{name1}_{name2}_battle_history.json"
-    with open(filename, 'w') as file:
-        json.dump(battle_history, file)
+def save_battle_history_to_db(pokemon1_name, pokemon2_name, battle_history):
+    battle_record = BattleHistory(pokemon1_name=pokemon1_name, pokemon2_name=pokemon2_name, round_data=battle_history)
+    db.session.add(battle_record)
+    db.session.commit()
 
 # Функция для загрузки истории боя из JSON
-def load_battle_history_from_json(pokemon1_name, pokemon2_name):
-    filename = f"{pokemon1_name}_{pokemon2_name}_battle_history.json"
-    try:
-        with open(filename, 'r') as file:
-            return json.load(file)
-    except FileNotFoundError:
-        return []
+def load_battle_history_from_db(pokemon1_name, pokemon2_name):
+    battle_records = BattleHistory.query.filter_by(pokemon1_name=pokemon1_name, pokemon2_name=pokemon2_name).all()
+    battle_history = [record.round_data for record in battle_records]
+    return battle_history
 
 # Функция для получения списка покемонов
 def get_pokemon_list(offset=0, limit=20):
@@ -135,14 +168,7 @@ def fight(name1, name2):
         pokemon1['hp'] = int(pokemon1_hp)
         pokemon2['hp'] = int(pokemon2_hp)
 
-    battle_filename = f"{name1}_{name2}_battle_history.json"
-
-    if os.path.exists(battle_filename):
-        with open(battle_filename, 'r') as file:
-            battle_history = json.load(file)
-    else:
-        battle_history = []
-
+    battle_history = load_battle_history_from_db(name1, name2)
     battle_result = None
 
     if request.method == "POST":
@@ -173,11 +199,15 @@ def fight(name1, name2):
 
             if battle_result:
                 battle_history.append(f"Победитель: {battle_result}")
+                print(battle_history)
+                email_text = "\n".join(str(item) for item in battle_history)  # Объединяем элементы списка в одну строку
+                send_email_gmail("Результаты боя Pokemon", email_text)  # Отправляем текстовое письмо
 
-            with open(battle_filename, 'w') as file:
-                json.dump(battle_history, file)
+
+            save_battle_history_to_db(name1, name2, battle_history)
 
     return render_template("fight.html", pokemon1=pokemon1, pokemon2=pokemon2, battle_result=battle_result, battle_history=battle_history)
+
 
 @app.route("/pokemon/<name>", methods=["GET", "POST"])
 def pokemon_info(name):
