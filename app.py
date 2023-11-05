@@ -1,5 +1,7 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 import requests
+from ftplib import FTP
+from datetime import datetime
 import random
 from flask_sqlalchemy import SQLAlchemy
 #пароль от почты яндекс: kuqiqkiiyplmnhey
@@ -99,6 +101,73 @@ def get_pokemon_list(offset=0, limit=20):
         return pokemon_list
     return []
 
+import requests
+
+def get_pokemon_ids(id=0):
+    url = f"https://pokeapi.co/api/v2/pokemon?offset=0&limit=1000"
+    if id == 0:
+        id = random.randint(1, 20)
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        pokemon_list = []
+        for pokemon in data['results']:
+            pokemon_data = get_pokemon_infoS(pokemon['name'])
+            if pokemon_data['id'] == id:
+                pokemon_list.append({
+                    'id': pokemon_data['id'],
+                    'name': pokemon_data['name'],
+                    'image': pokemon_data['image'],
+                    'type': pokemon_data['type'],
+                    'height': pokemon_data['height'],
+                    'weight': pokemon_data['weight'],
+                    'hp': pokemon_data['hp'],
+                    'attack_power': pokemon_data['attack_power'],
+                    'abilities': pokemon_data['abilities'],
+                })
+                return pokemon_list
+    return []
+
+@app.route("/pokemon/list<filters>", methods=["GET"])
+def get_filtered_pokemon_list(filters):
+    filters = request.args.get("filters")
+    if filters:
+        # Вызываем функцию get_filtered_pokemon для получения отфильтрованного списка
+        filtered_pokemon_list = get_filtered_pokemon(filters)
+    else:
+        # Если фильтры не указаны, возвращаем список всех покемонов
+        filtered_pokemon_list = get_pokemon_list()
+
+    return jsonify(filtered_pokemon_list)
+@app.route("/pokemon/random", methods=["GET"])
+def get_random_pokemon():
+    pokemon_data = get_pokemon_ids()
+    return jsonify(pokemon_data)
+@app.route("/pokemon/<int:pokemon_id>", methods=["GET"])
+def get_random_pokemon_by_id(pokemon_id):
+    pokemon_data = get_pokemon_ids(pokemon_id)
+    return jsonify(pokemon_data)
+
+# Логика для получения информации о покемоне с фильтрацией
+def get_filtered_pokemon(pokemon_id, filters):
+    # Получаем информацию о покемоне без фильтрации
+    pokemon_info = get_pokemon_infoS(pokemon_id)
+
+    # Применяем фильтры к информации о покемоне
+    filtered_pokemon_info = {}
+    print(filters)
+    if "abilities" in filters:
+        # Фильтр по способностям покемона
+        abilities_filter = filters["abilities"].split(", ")
+        filtered_pokemon_info["abilities"] = [ability for ability in pokemon_info["abilities"] if ability in abilities_filter]
+
+    if "type" in filters:
+        # Фильтр по типу покемона
+        type_filter = filters["type"]
+        if pokemon_info["type"] == type_filter:
+            filtered_pokemon_info["type"] = pokemon_info["type"]
+
+    return filtered_pokemon_info
 # Функция для получения информации о покемоне по его имени
 def get_pokemon_info(pokemon_name):
     url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
@@ -126,6 +195,69 @@ def get_pokemon_info(pokemon_name):
             "type": data['types'][0]['type']['name']
         }
     return None
+def get_pokemon_infoS(pokemon_name):
+    url = f"https://pokeapi.co/api/v2/pokemon/{pokemon_name.lower()}"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        id = data['id']
+        name = data['name'].capitalize()
+        weight = data['weight']
+        height = data['height']
+        image = data['sprites']['front_default']
+        hp = data['stats'][0]['base_stat']
+        attack_power = data['stats'][1]['base_stat']
+        abilities = [ability['ability']['name'] for ability in data['abilities']]
+
+        return {
+            "id": id,
+            "name": name,
+            "weight": weight,
+            "height": height,
+            "image": image,
+            "hp": hp,
+            "attack_power": attack_power,
+            "abilities": ", ".join(abilities),
+            "type": data['types'][0]['type']['name']
+        }
+    return None
+
+def save_pokemon_info_to_ftp(pokemon_name, info):
+    # Параметры подключения к FTP-серверу
+    ftp_host = '127.0.0.1'  # Замените на адрес своего FTP-сервера
+    ftp_port = 21
+    ftp_user = 'lexa'
+    ftp_password = '1234'
+
+    # Создаем имя файла в формате yyyymmdd_pokemon_name.md
+    current_date = datetime.now().strftime('%Y%m%d')
+    filename = f"{current_date}_{pokemon_name}.md"
+
+    # Формируем содержимое файла в формате Markdown
+    markdown_content = f"# {pokemon_name}\n\n{info}"
+
+    try:
+        # Подключаемся к FTP-серверу
+        with FTP() as ftp:
+            ftp.connect(ftp_host, ftp_port)
+            ftp.login(ftp_user, ftp_password)
+
+            # Создаем папку с именем текущей даты
+            ftp.mkd(current_date)
+
+            # Переходим в созданную папку
+            ftp.cwd(current_date)
+
+            # Загружаем файл на FTP-сервер
+            with open(filename, 'wb') as file:
+                file.write(markdown_content.encode('utf-8'))
+            ftp.storbinary(f"STOR {filename}", open(filename, 'rb'))
+
+            return f"Информация о покемоне {pokemon_name} сохранена на FTP-сервере в папке {current_date}."
+    except Exception as e:
+        return f"Ошибка при сохранении информации на FTP: {str(e)}"
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -215,7 +347,13 @@ def pokemon_info(name):
     pokemon_list = get_pokemon_list()
     opponent = random.choice(pokemon_list)
     user_attack = request.form.get("user_attack")
-
+    info = f"Тип: {pokemon['type']}\n"
+    info += f"Вес: {pokemon['weight']}\n"
+    info += f"Высота: {pokemon['height']}\n"
+    info += f"Здоровье: {pokemon['hp']}\n"
+    info += f"Сила атаки: {pokemon['attack_power']}\n"
+    info += f"Способности: {pokemon['abilities']}\n"
+    save_pokemon_info_to_ftp(pokemon['name'], info)
     if user_attack and user_attack.isdigit():
         user_attack = int(user_attack)
 
